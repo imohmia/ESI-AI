@@ -2,11 +2,11 @@ import requests
 import os
 
 # Google Drive file URL (the one you shared)
-file_id = "1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0"  # Replace this with the actual file ID
+file_id = "1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0"  # Use your file ID
 url = f"https://drive.google.com/uc?id={file_id}"
 
-# Path to save the file on your server
-model_path = "trained_model/model.safetensors"  # Ensure this is the path where you want to save the file
+# Path to save the model file
+model_path = "trained_model/model.safetensors"
 
 # Check if the model file already exists, if not, download it
 if not os.path.exists(model_path):
