@@ -4,3 +4,4 @@ torch==2.1.0  # Updated to a newer version
 gunicorn==20.1.0
 uvicorn==0.18.2
 requests==2.26.0
+tokenizers==0.10.3
