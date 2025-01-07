@@ -23,23 +23,28 @@ def home():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Ensure the input has the 'text' field
+    # Ensure the input has the 'texts' field (allowing multiple texts)
     data = request.json
-    if not data or 'text' not in data:
+    if not data or 'texts' not in data:
         return jsonify({'error': 'No text provided'}), 400
 
-    text = data['text']
+    texts = data['texts']
+    if isinstance(texts, str):  # If only one text is passed as a string, wrap it in a list
+        texts = [texts]
 
     # Tokenize input
-    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=128)
+    inputs = tokenizer(texts, return_tensors='pt', padding=True, truncation=True, max_length=128, is_split_into_words=False)
     inputs = {key: value.to(device) for key, value in inputs.items()}
+
+    predicted_labels = []
 
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
-        predicted_label = torch.argmax(logits, dim=-1).item()
+        predicted_labels = torch.argmax(logits, dim=-1).tolist()
 
-    return jsonify({'predicted_label': predicted_label})
+    # Return predictions as a list of labels
+    return jsonify({'predicted_labels': predicted_labels})
 
 if __name__ == "__main__":
     # Ensure app listens on the correct port from environment variables
