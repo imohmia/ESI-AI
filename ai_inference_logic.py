@@ -1,13 +1,29 @@
+import os
+import requests
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
-import os
 
-# Define the correct path to the model files in the root directory
-model_path = os.path.dirname(__file__)  # This sets the path to the directory of the current file
+# Model download link
+MODEL_URL = "https://drive.google.com/uc?id=1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0&export=download"
+MODEL_FILE = "model.safetensors"
 
-# Load the tokenizer and model
-tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-model = AutoModelForSequenceClassification.from_pretrained(model_path, local_files_only=True)
+# Download model if not present
+def download_model():
+    if not os.path.exists(MODEL_FILE):
+        print("Downloading model...")
+        response = requests.get(MODEL_URL, stream=True)
+        with open(MODEL_FILE, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        print("Model downloaded successfully.")
+
+# Download the model
+download_model()
+
+# Load tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained("./")
+model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=torch.load(MODEL_FILE))
 
 # Define the post-processing logic
 def apply_post_processing(input_text, predicted_esi_level, logits):
