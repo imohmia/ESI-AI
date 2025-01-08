@@ -1,13 +1,15 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+import os
 
-# Correct local path to the model files
-model_path = "./fine_tuned_clinical_bert"
+# Define the correct path to the model files in the root directory
+model_path = os.path.dirname(__file__)  # This sets the path to the directory of the current file
 
-tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForSequenceClassification.from_pretrained(model_path)
+# Load the tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_path, local_files_only=True)
 
-# Define the post-processing logic (reuse the function from earlier)
+# Define the post-processing logic
 def apply_post_processing(input_text, predicted_esi_level, logits):
     # Define keyword lists and processing logic
     critical_keywords = [
