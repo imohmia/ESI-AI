@@ -3,3 +3,5 @@ transformers
 flask
 gunicorn
 uvicorn
+fastapi
+requests
