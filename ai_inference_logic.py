@@ -1,8 +1,9 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
-# Load the model and tokenizer
-model_path = "path_to_your_model"
+# Correct local path to the model files
+model_path = "./fine_tuned_clinical_bert"
+
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 
