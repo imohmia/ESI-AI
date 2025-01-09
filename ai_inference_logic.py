@@ -1,5 +1,6 @@
 import os
 import torch
+from safetensors.torch import load_file
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 # Model file path
@@ -13,14 +14,20 @@ if not os.path.exists(MODEL_FILE):
 print("Loading tokenizer and model...")
 try:
     tokenizer = AutoTokenizer.from_pretrained("./")  # Ensure tokenizer matches the model
+
+    # Load the state dictionary using the safetensors library
+    state_dict = load_file(MODEL_FILE)
+
+    # Load the model with the state dictionary
     model = AutoModelForSequenceClassification.from_pretrained(
-        "./", 
-        state_dict=torch.load(MODEL_FILE, map_location=torch.device("cpu")), 
+        "./",
+        state_dict=state_dict,
         trust_remote_code=True
     )
     print("Tokenizer and model loaded successfully.")
 except Exception as e:
     raise RuntimeError(f"Failed to load the tokenizer or model: {e}")
+
 
 # Post-processing function
 def apply_post_processing(input_text, predicted_esi_level, logits):
@@ -91,7 +98,28 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
 large_test_cases = [
     "Sudden severe chest pain and shortness of breath | Age: 67 | Gender: Male",
     "Unresponsive and not breathing | Age: 45 | Gender: Female",
-    # Add other cases...
+    "Vomiting blood and feeling dizzy | Age: 50 | Gender: Male",
+    "High fever, persistent cough, and difficulty breathing | Age: 32 | Gender: Female",
+    "Severe abdominal pain and reduced fetal movement | Age: 28 | Gender: Female (pregnant)",
+    "Mild sore throat and runny nose | Age: 25 | Gender: Female",
+    "Severe headache and slurred speech | Age: 60 | Gender: Male",
+    "Profuse bleeding after a car accident | Age: 34 | Gender: Male",
+    "Cough and fever for three days | Age: 40 | Gender: Female",
+    "Pregnant woman with severe pain in third trimester | Age: 29 | Gender: Female (pregnant)",
+    "Child with persistent high fever and rash | Age: 6 | Gender: Male",
+    "Loss of vision in one eye and dizziness | Age: 72 | Gender: Female",
+    "Heart palpitations and mild chest discomfort | Age: 45 | Gender: Male",
+    "Fainting after feeling lightheaded | Age: 21 | Gender: Female",
+    "Swollen ankle after a fall, no bleeding | Age: 30 | Gender: Male",
+    "Coughing up blood and chest discomfort | Age: 56 | Gender: Female",
+    "Third-trimester pregnant woman experiencing no fetal movement | Age: 30 | Gender: Female (pregnant)",
+    "Uncontrolled vomiting and severe dehydration | Age: 18 | Gender: Male",
+    "Mild headache after hitting head on a door | Age: 35 | Gender: Female",
+    "Child with ear pain and fever for 2 days | Age: 5 | Gender: Female",
+    "Bleeding from a deep cut on the hand | Age: 27 | Gender: Male",
+    "Chronic back pain without new symptoms | Age: 48 | Gender: Male",
+    "Slurred speech and weakness on one side of the body | Age: 70 | Gender: Male",
+    "Persistent cough and weight loss over months | Age: 60 | Gender: Male"
 ]
 
 # Tokenize the test cases
