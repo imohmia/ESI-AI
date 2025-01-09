@@ -1,9 +1,12 @@
 import os
 import requests
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 MODEL_URL = "https://drive.google.com/uc?id=1aFrGA06dTz5y0jk29T0Ou3pwQMToNYZt&export=download"
 MODEL_FILE = "model.safetensors"
 
+# Function to download the model
 def download_model():
     if not os.path.exists(MODEL_FILE):
         print("Downloading model...")
@@ -13,7 +16,7 @@ def download_model():
                 if chunk:
                     f.write(chunk)
         print("Model downloaded successfully.")
-      
+
 # Download the model
 download_model()
 
@@ -23,7 +26,6 @@ model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=torc
 
 # Define the post-processing logic
 def apply_post_processing(input_text, predicted_esi_level, logits):
-    # Define keyword lists and processing logic
     critical_keywords = [
         "vomiting blood", "unresponsive", "not breathing", "loss of vision", "severe pain", "slurred speech",
         "chest pain", "difficulty breathing", "stroke", "severe bleeding", "fainting", "heart attack",
