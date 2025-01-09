@@ -1,22 +1,19 @@
 import os
-import requests
+import gdown
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 # Model download link
-MODEL_URL = "https://drive.google.com/uc?id=1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0&export=download"
+MODEL_URL = "https://drive.google.com/uc?id=1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0"
 MODEL_FILE = "model.safetensors"
 
 # Download model if not present
 def download_model():
     if not os.path.exists(MODEL_FILE):
         print("Downloading model...")
-        response = requests.get(MODEL_URL, stream=True)
-        with open(MODEL_FILE, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+        gdown.download(MODEL_URL, MODEL_FILE, quiet=False)
         print("Model downloaded successfully.")
+        
 
 # Download the model
 download_model()
