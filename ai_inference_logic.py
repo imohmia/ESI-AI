@@ -198,17 +198,21 @@ def evaluate_cases():
     ]
 
     logits, predicted_esi_levels = predict_with_logic(large_test_cases)
-    results = []
+    results = {
+        "predictions": []
+    }
 
     for i, test in enumerate(large_test_cases):
         adjusted_esi_level = apply_post_processing(test, predicted_esi_levels[i], logits[i])
-        results.append({
-            "input": test,
-            "original_predicted_esi": predicted_esi_levels[i],
-            "adjusted_esi": adjusted_esi_level
+        results["predictions"].append({
+            "input_text": test,
+            "prediction": {
+                "original_predicted_esi": predicted_esi_levels[i],
+                "adjusted_esi": adjusted_esi_level
+            }
         })
-        print(f"Input: {test}\nOriginal Predicted ESI Level: {predicted_esi_levels[i]}\nAdjusted ESI Level: {adjusted_esi_level}\n")
     return results
 
 if __name__ == "__main__":
-    evaluate_cases()
+    output = evaluate_cases()
+    print(output)
