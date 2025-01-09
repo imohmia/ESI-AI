@@ -21,8 +21,7 @@ def download_model():
 download_model()
 
 # Load tokenizer and model
-tokenizer = AutoTokenizer.from_pretrained("./")
-model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=torch.load(MODEL_FILE))
+print("Placeholder deployment to allow Render setup.")
 
 def apply_post_processing(input_text, predicted_esi_level, logits):
     # Define expanded rules for adjusting predictions
