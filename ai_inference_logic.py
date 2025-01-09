@@ -16,8 +16,12 @@ def download_model():
                     f.write(chunk)
         print("Model downloaded successfully.")
 
-# Run the download function
+# Download the model
 download_model()
+
+# Dummy function to satisfy the import
+def predict_with_logic(input_texts):
+    return [1] * len(input_texts)  # Return ESI Level 1 for all inputs temporarily
 
 # Placeholder for deployment
 print("Deployment setup successful. Model downloading and setup will be done in subsequent steps.")
