@@ -1,26 +1,25 @@
 import os
-import gdown
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
+import requests
 
-# Model download link
-MODEL_URL = "https://drive.google.com/uc?id=1au-vR0Qwd1bIIDRD1DzOO7e7Gk1Fa1t0"
+MODEL_URL = "https://drive.google.com/uc?id=1aFrGA06dTz5y0jk29T0Ou3pwQMToNYZt&export=download"
 MODEL_FILE = "model.safetensors"
 
-# Download model if not present
 def download_model():
     if not os.path.exists(MODEL_FILE):
         print("Downloading model...")
-        gdown.download(MODEL_URL, MODEL_FILE, quiet=False)
+        response = requests.get(MODEL_URL, stream=True)
+        with open(MODEL_FILE, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
         print("Model downloaded successfully.")
-        
-
+      
 # Download the model
 download_model()
 
 # Load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained("./")
-model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=load_file(MODEL_FILE))
+model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=torch.load(MODEL_FILE))
 
 # Define the post-processing logic
 def apply_post_processing(input_text, predicted_esi_level, logits):
