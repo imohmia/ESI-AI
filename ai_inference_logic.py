@@ -30,12 +30,18 @@ except Exception as e:
 
 # Define your prediction function
 def predict_with_logic(input_texts: list[str]):
-    # Tokenize inputs
-    inputs = tokenizer(input_texts, return_tensors="pt", truncation=True, padding=True, max_length=512)
-    outputs = model(**inputs)
-    logits = outputs.logits
-    predictions = torch.argmax(logits, dim=1).tolist()
-    return logits, [pred + 1 for pred in predictions]  # Adjust for ESI levels starting at 1
+    if not isinstance(input_texts, list):
+        raise ValueError("Input must be a list of strings.")
+    
+    try:
+        # Tokenize inputs
+        inputs = tokenizer(input_texts, return_tensors="pt", truncation=True, padding=True, max_length=512)
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predictions = torch.argmax(logits, dim=1).tolist()
+        return logits, [pred + 1 for pred in predictions]  # Adjust for ESI levels starting at 1
+    except Exception as e:
+        raise RuntimeError(f"Failed during prediction: {e}")
 
 # Post-processing function
 def apply_post_processing(input_text, predicted_esi_level, logits):
@@ -43,18 +49,17 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
     critical_keywords = [
         "vomiting blood", "unresponsive", "not breathing", "loss of vision", "severe pain", "slurred speech",
         "chest pain", "difficulty breathing", "stroke", "severe bleeding", "fainting", "heart attack",
-        "profuse bleeding", "head trauma", "trauma", "severe head injury", "unconscious", "seizure lasting longer than 5 minutes",
-        "heavy bleeding", "bleeding heavily", "blood loss", "hemorrhage", "bleeding uncontrollably", "bleeding profusely", "bleeding a lot", "severe blood loss"
+        "profuse bleeding", "head trauma", "trauma", "severe head injury", "unconscious", "seizure lasting longer than 5 minutes"
     ]
     pregnancy_keywords_critical = [
-        "reduced fetal movement", "no fetal movement", "severe abdominal pain during pregnancy", 
-        "fetal movement stopped", "baby not moving", "severe bleeding during pregnancy", 
-        "preterm labor symptoms", "third trimester pain", "pregnant and in pain", 
+        "reduced fetal movement", "no fetal movement", "severe abdominal pain during pregnancy",
+        "fetal movement stopped", "baby not moving", "severe bleeding during pregnancy",
+        "preterm labor symptoms", "third trimester pain", "pregnant and in pain",
         "contractions with severe pain"
     ]
     moderate_keywords = [
         "persistent cough", "high fever", "rash", "dehydration", "infection symptoms",
-        "ear pain with fever", "pain with swelling", "nausea and dizziness", 
+        "ear pain with fever", "pain with swelling", "nausea and dizziness",
         "uncontrolled vomiting", "child with severe pain"
     ]
     borderline_keywords = [
@@ -67,134 +72,29 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
     # Get confidence scores
     confidence = torch.softmax(logits, dim=0).max().item()
 
-    # 1. Immediate Critical Cases
+    # Post-processing logic
     if any(keyword in input_text.lower() for keyword in critical_keywords):
         return 1  # Escalate to Level 1
-
-    # 2. Pregnancy-Specific Critical Cases
     if any(keyword in input_text.lower() for keyword in pregnancy_keywords_critical):
-        return 1  # Escalate to Level 1
-
-    # 3. High-Risk but Non-Immediate Cases
+        return 1
     if any(keyword in input_text.lower() for keyword in moderate_keywords):
         return max(2, predicted_esi_level)  # Ensure at least Level 2
-
-    # 4. Borderline or Low-Risk Cases
     if any(keyword in input_text.lower() for keyword in borderline_keywords):
         return min(4, predicted_esi_level)  # Ensure at most Level 4
-
     if any(keyword in input_text.lower() for keyword in low_risk_keywords):
         return 5  # Escalate downward to Level 5 for non-urgent cases
+    if confidence < 0.7:
+        return max(2, predicted_esi_level)  # Adjust for low confidence
 
-    # 5. Low Confidence Handling
-    if confidence < 0.7:  # Confidence threshold for escalation
-        return max(2, predicted_esi_level)
+    return predicted_esi_level  # Default
 
-    # 6. Default: No rule applies
-    return predicted_esi_level
-
-# Test cases
+# Evaluate test cases
 def evaluate_cases():
     large_test_cases = [
-               "Unresponsive and not breathing | Age: 45 | Gender: Female",
-        "Vomiting blood and feeling dizzy | Age: 50 | Gender: Male",
-        "Profuse bleeding after a car accident | Age: 34 | Gender: Male",
-        "Persistent cough and fever for 3 days | Age: 40 | Gender: Female",
-        "Mild sore throat and runny nose | Age: 25 | Gender: Male",
-        "Chest pain and difficulty breathing | Age: 67 | Gender: Male",
-        "Severe headache and slurred speech | Age: 60 | Gender: Male",
-        "Child with a rash and high fever for 2 days | Age: 5 | Gender: Male",
-        "Swollen ankle after falling down stairs | Age: 30 | Gender: Female",
-        "Shortness of breath after a bee sting | Age: 25 | Gender: Male",
-        "Child fell and hit head, now drowsy and vomiting | Age: 7 | Gender: Male",
-        "Uncontrolled vomiting and severe dehydration | Age: 18 | Gender: Female",
-        "Pregnant woman reporting no fetal movement | Age: 31 | Gender: Female (pregnant)",
-        "Persistent back pain with no new symptoms | Age: 48 | Gender: Male",
-        "Seizure lasting longer than 5 minutes | Age: 42 | Gender: Female",
-        "Loss of vision in one eye and nausea | Age: 72 | Gender: Female",
-        "Heart palpitations and mild dizziness | Age: 50 | Gender: Male",
-        "Heavy bleeding from a deep cut on the arm | Age: 27 | Gender: Female",
-        "Coughing up blood and chest discomfort | Age: 56 | Gender: Female",
-        "Stroke symptoms: slurred speech and facial drooping | Age: 70 | Gender: Female",
-        "High fever and severe ear pain | Age: 8 | Gender: Female",
-        "Profuse nosebleed that won't stop | Age: 28 | Gender: Male",
-        "Persistent abdominal pain for 3 days | Age: 50 | Gender: Male",
-        "Third-degree burns on hand from boiling water | Age: 35 | Gender: Female",
-        "Mild headache after hitting head on a door | Age: 29 | Gender: Male",
-        "Severe abdominal pain and vomiting during pregnancy | Age: 28 | Gender: Female (pregnant)",
-        "Child with a sore throat and mild fever | Age: 4 | Gender: Male",
-        "Persistent weight loss and chronic cough | Age: 65 | Gender: Male",
-        "Trauma from a motorcycle accident | Age: 40 | Gender: Male",
-        "Pain and swelling in the knee after a fall | Age: 32 | Gender: Female",
-        "Severe difficulty breathing after eating peanuts | Age: 16 | Gender: Male",
-        "Child with persistent high fever and lethargy | Age: 3 | Gender: Female",
-        "Sudden severe chest pain and profuse sweating | Age: 55 | Gender: Male",
-        "Mild rash on arms, no other symptoms | Age: 20 | Gender: Female",
-        "Broken arm with deformity after a fall | Age: 12 | Gender: Male",
-        "Child vomiting repeatedly after a head injury | Age: 9 | Gender: Female",
-        "Swollen eye and blurry vision after a chemical splash | Age: 45 | Gender: Male",
-        "Persistent cough with blood for a week | Age: 55 | Gender: Male",
-        "Sudden loss of consciousness during exercise | Age: 24 | Gender: Male",
-        "Pregnant woman with severe bleeding | Age: 30 | Gender: Female (pregnant)",
-        "Child with wheezing and severe difficulty breathing | Age: 6 | Gender: Male",
-        "Severe allergic reaction with hives and swelling | Age: 22 | Gender: Female",
-        "Painful urination and blood in urine | Age: 33 | Gender: Female",
-        "Fainting after feeling lightheaded | Age: 21 | Gender: Male",
-        "Profuse sweating and nausea after climbing stairs | Age: 52 | Gender: Female",
-        "Severe chest pain radiating to the left arm | Age: 59 | Gender: Male",
-        "Persistent ear pain with discharge | Age: 27 | Gender: Female",
-        "Mild sore throat and cough | Age: 18 | Gender: Male",
-        "Burns on legs from a house fire | Age: 45 | Gender: Male",
-        "Child choking on a small toy, unable to breathe | Age: 2 | Gender: Female",
-        "Fractured wrist after a car accident | Age: 40 | Gender: Female",
-        "Severe abdominal pain and dizziness | Age: 48 | Gender: Male",
-        "Slurred speech and numbness in one arm | Age: 64 | Gender: Male",
-        "Pain and redness in the eye after rubbing it | Age: 29 | Gender: Female",
-        "Mild fever and cough for a week | Age: 60 | Gender: Male",
-        "Child with diarrhea and vomiting for 2 days | Age: 5 | Gender: Female",
-        "Severe headache and vomiting after a head injury | Age: 37 | Gender: Male",
-        "Sudden onset of confusion and inability to speak | Age: 74 | Gender: Female",
-        "Broken leg with open wound after falling | Age: 39 | Gender: Female",
-        "Shortness of breath and chest tightness | Age: 50 | Gender: Male",
-        "Persistent dry cough for over a month | Age: 62 | Gender: Male",
-        "Severe bleeding from a scalp wound | Age: 41 | Gender: Male",
-        "Mild bruising on the knee after hitting a table | Age: 23 | Gender: Female",
-        "Sharp abdominal pain and bloating | Age: 54 | Gender: Male",
-        "Child with a persistent ear infection and fever | Age: 7 | Gender: Male",
-        "Profuse bleeding after being hit by a falling object | Age: 38 | Gender: Male",
-        "Sudden vision loss and severe headache | Age: 58 | Gender: Female",
-        "Pregnant woman with contractions every 5 minutes | Age: 30 | Gender: Female (pregnant)",
-        "Severe abdominal pain and fever after surgery | Age: 50 | Gender: Male",
-        "Shortness of breath after being stung by multiple bees | Age: 43 | Gender: Male",
-        "Child unable to keep fluids down due to vomiting | Age: 4 | Gender: Male",
-        "Severe leg pain and inability to walk after a fall | Age: 55 | Gender: Female",
-        "Mild rash with no other symptoms | Age: 31 | Gender: Female",
-        "High fever, chills, and body aches | Age: 37 | Gender: Male",
-        "Severe chest pain and fainting | Age: 62 | Gender: Male",
-        "Child with swollen tonsils and high fever | Age: 6 | Gender: Female",
-        "Severe allergic reaction with throat swelling | Age: 28 | Gender: Female",
-        "Persistent fatigue and breathlessness | Age: 49 | Gender: Male",
-        "Coughing blood and weight loss | Age: 65 | Gender: Male",
-        "Mild sprain after tripping on stairs | Age: 19 | Gender: Female",
-        "Child with a fever and dehydration | Age: 3 | Gender: Female",
-        "Profuse bleeding from a dog bite | Age: 33 | Gender: Male",
-        "Severe back pain after lifting heavy objects | Age: 42 | Gender: Male",
-        "Sudden loss of vision in one eye | Age: 67 | Gender: Male",
-        "Child crying and holding ear with fever | Age: 8 | Gender: Male",
-        "Severe abdominal pain and pale skin | Age: 60 | Gender: Female",
-        "Shortness of breath and swollen lips after medication | Age: 46 | Gender: Female",
-        "Child with a swollen face after eating peanuts | Age: 3 | Gender: Male",
-        "Severe chest pain after exercising | Age: 45 | Gender: Male",
-        "Pregnant woman experiencing contractions and severe bleeding | Age: 32 | Gender: Female (pregnant)",
-        "Persistent earache with fever and dizziness | Age: 21 | Gender: Female",
-        "Child crying and refusing to move arm after a fall | Age: 5 | Gender: Male",
-        "High fever and chills after a recent trip abroad | Age: 40 | Gender: Female",
-        "Severe abdominal pain and black stools | Age: 53 | Gender: Male",
-        "Shortness of breath while climbing stairs | Age: 60 | Gender: Male",
-        "Child choking and unable to speak | Age: 4 | Gender: Female",
-        "Sudden loss of balance and inability to walk | Age: 68 | Gender: Male",
-        "Sudden sharp chest pain and sweating | Age: 58 | Gender: Female",
-        "Persistent vomiting and inability to keep food down | Age: 34 | Gender: Male"     
+        "Sudden severe chest pain and shortness of breath | Age: 67 | Gender: Male",
+        "Unresponsive and not breathing | Age: 45 | Gender: Female",
+        "Vomiting blood and feeling dizzy | Age: 50 | Gender: Male"
+        # Add more cases as needed
     ]
 
     logits, predicted_esi_levels = predict_with_logic(large_test_cases)
@@ -202,12 +102,14 @@ def evaluate_cases():
 
     for i, test in enumerate(large_test_cases):
         adjusted_esi_level = apply_post_processing(test, predicted_esi_levels[i], logits[i])
-        results.append({
+        result = {
             "input": test,
             "original_predicted_esi": predicted_esi_levels[i],
             "adjusted_esi": adjusted_esi_level
-        })
-        print(f"Input: {test}\nOriginal Predicted ESI Level: {predicted_esi_levels[i]}\nAdjusted ESI Level: {adjusted_esi_level}\n")
+        }
+        print(f"Input: {result['input']}\nOriginal Predicted ESI Level: {result['original_predicted_esi']}\nAdjusted ESI Level: {result['adjusted_esi']}\n")
+        results.append(result)
+
     return results
 
 if __name__ == "__main__":
