@@ -28,9 +28,10 @@ try:
 except Exception as e:
     raise RuntimeError(f"Failed to load the tokenizer or model: {e}")
 
-def predict_with_logic(input_text):
-    # Placeholder logic: Adjust as per your actual logic.
-    return "Prediction based on input text."
+# Define your prediction function
+def predict_with_logic(input_texts: list[str]):
+    # Tokenize inputs
+    inputs = tokenizer(input_texts, return_tensors="pt", truncation=True, padding=True, max_length=512)
 
 
 # Post-processing function
