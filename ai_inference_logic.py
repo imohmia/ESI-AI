@@ -20,7 +20,7 @@ download_model()
 
 # Load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained("./")
-model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=torch.load(MODEL_FILE))
+model = AutoModelForSequenceClassification.from_pretrained("./", state_dict=load_file(MODEL_FILE))
 
 # Define the post-processing logic
 def apply_post_processing(input_text, predicted_esi_level, logits):
