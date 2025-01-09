@@ -2,21 +2,25 @@ import os
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
+# Model file path
 MODEL_FILE = "model.safetensors"
 
 # Check if the model exists locally
 if not os.path.exists(MODEL_FILE):
-    raise FileNotFoundError(f"{MODEL_FILE} not found. Please upload the model to the correct directory.")
+    raise FileNotFoundError(f"{MODEL_FILE} not found. Please ensure the model is uploaded to the correct directory.")
 
 # Load tokenizer and model
 print("Loading tokenizer and model...")
-tokenizer = AutoTokenizer.from_pretrained("./")  # Ensure tokenizer matches the model
-model = AutoModelForSequenceClassification.from_pretrained(
-    "./", 
-    state_dict=torch.load(MODEL_FILE), 
-    trust_remote_code=True
-)
-print("Tokenizer and model loaded successfully.")
+try:
+    tokenizer = AutoTokenizer.from_pretrained("./")  # Ensure tokenizer matches the model
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "./", 
+        state_dict=torch.load(MODEL_FILE, map_location=torch.device("cpu")), 
+        trust_remote_code=True
+    )
+    print("Tokenizer and model loaded successfully.")
+except Exception as e:
+    raise RuntimeError(f"Failed to load the tokenizer or model: {e}")
 
 # Post-processing function
 def apply_post_processing(input_text, predicted_esi_level, logits):
