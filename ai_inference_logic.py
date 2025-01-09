@@ -43,17 +43,18 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
     critical_keywords = [
         "vomiting blood", "unresponsive", "not breathing", "loss of vision", "severe pain", "slurred speech",
         "chest pain", "difficulty breathing", "stroke", "severe bleeding", "fainting", "heart attack",
-        "profuse bleeding", "head trauma", "severe head injury", "unconscious", "seizure lasting longer than 5 minutes"
+        "profuse bleeding", "head trauma", "trauma", "severe head injury", "unconscious", "seizure lasting longer than 5 minutes",
+        "heavy bleeding", "bleeding heavily", "blood loss", "hemorrhage", "bleeding uncontrollably", "bleeding profusely", "bleeding a lot", "severe blood loss"
     ]
     pregnancy_keywords_critical = [
         "reduced fetal movement", "no fetal movement", "severe abdominal pain during pregnancy", 
-        "fetal movement stopped", "baby not moving", "severe bleeding during pregnancy",
-        "preterm labor symptoms", "third trimester pain", "pregnant and in pain",
+        "fetal movement stopped", "baby not moving", "severe bleeding during pregnancy", 
+        "preterm labor symptoms", "third trimester pain", "pregnant and in pain", 
         "contractions with severe pain"
     ]
     moderate_keywords = [
         "persistent cough", "high fever", "rash", "dehydration", "infection symptoms",
-        "ear pain with fever", "pain with swelling", "nausea and dizziness",
+        "ear pain with fever", "pain with swelling", "nausea and dizziness", 
         "uncontrolled vomiting", "child with severe pain"
     ]
     borderline_keywords = [
@@ -66,35 +67,39 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
     # Get confidence scores
     confidence = torch.softmax(logits, dim=0).max().item()
 
-    # Refined Priority-Based Keyword Logic
+    # 1. Immediate Critical Cases
     if any(keyword in input_text.lower() for keyword in critical_keywords):
-        return 1  # Critical cases are always Level 1
+        return 1  # Escalate to Level 1
+
+    # 2. Pregnancy-Specific Critical Cases
     if any(keyword in input_text.lower() for keyword in pregnancy_keywords_critical):
-        return 1  # Critical pregnancy cases escalate to Level 1
+        return 1  # Escalate to Level 1
+
+    # 3. High-Risk but Non-Immediate Cases
     if any(keyword in input_text.lower() for keyword in moderate_keywords):
         return max(2, predicted_esi_level)  # Ensure at least Level 2
+
+    # 4. Borderline or Low-Risk Cases
     if any(keyword in input_text.lower() for keyword in borderline_keywords):
         return min(4, predicted_esi_level)  # Ensure at most Level 4
-    if any(keyword in input_text.lower() for keyword in low_risk_keywords):
-        return 5  # Ensure Level 5 for non-urgent cases
 
-    # Handle low-confidence cases
-    if confidence < 0.75:  # Increased threshold for critical safety
+    if any(keyword in input_text.lower() for keyword in low_risk_keywords):
+        return 5  # Escalate downward to Level 5 for non-urgent cases
+
+    # 5. Low Confidence Handling
+    if confidence < 0.7:  # Confidence threshold for escalation
         return max(2, predicted_esi_level)
 
-    # Default behavior: Return the predicted level
+    # 6. Default: No rule applies
     return predicted_esi_level
 
 # Test cases
 def evaluate_cases():
     large_test_cases = [
-        "Sudden severe chest pain and difficulty breathing | Age: 67 | Gender: Male",
-        "Child with a sore throat and mild fever for 2 days | Age: 5 | Gender: Female",
-        "Profuse bleeding from a leg wound after a fall | Age: 30 | Gender: Male",
-        "Persistent cough and weight loss over months | Age: 65 | Gender: Male",
-        "High fever and severe ear pain | Age: 10 | Gender: Female",
-        # Add more test cases as needed
-    ]
+    "Sudden severe chest pain and difficulty breathing | Age: 67 | Gender: Male",
+    "Child with a sore throat and mild fever for 2 days | Age: 5 | Gender: Female",
+    "Profuse bleeding from a leg wound after a fall | Age: 30 | Gender: Male"
+]
 
     logits, predicted_esi_levels = predict_with_logic(large_test_cases)
     results = []
