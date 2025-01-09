@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from ai_inference_logic import predict_with_logic
+from ai_inference_logic import predict_with_logic, apply_post_processing
 from typing import List
+
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -11,6 +12,7 @@ class PredictRequest(BaseModel):
     texts: List[str] = Field(..., example=["Input text 1", "Input text 2"])
 
 @app.post("/predict")
+@app.post("/predict")
 def predict(data: PredictRequest):
     try:
         # Validate input
@@ -18,18 +20,22 @@ def predict(data: PredictRequest):
             raise HTTPException(status_code=400, detail="No texts provided for prediction.")
         
         # Run predictions
-        predictions = predict_with_logic(data.texts)
+        logits, predicted_esi_levels = predict_with_logic(data.texts)
+
+        # Apply post-processing
+        predictions = []
+        for text, logits_row, original_prediction in zip(data.texts, logits, predicted_esi_levels):
+            adjusted_esi = apply_post_processing(text, original_prediction, logits_row)
+            predictions.append({
+                "input_text": text,
+                "prediction": {
+                    "original_predicted_esi": original_prediction,
+                    "adjusted_esi": adjusted_esi
+                }
+            })
 
         # Structure the response
-        response = {
-            "predictions": [
-                {
-                    "input_text": text,
-                    "prediction": pred
-                }
-                for text, pred in zip(data.texts, predictions)
-            ]
-        }
+        response = {"predictions": predictions}
         return response
     except HTTPException as e:
         raise e
