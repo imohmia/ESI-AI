@@ -30,13 +30,14 @@ except Exception as e:
 
 # Define your prediction function
 def predict_with_logic(input_texts: list[str]):
-    # Tokenize inputs
+    print(f"Received inputs: {input_texts}")  # Debug log
     inputs = tokenizer(input_texts, return_tensors="pt", truncation=True, padding=True, max_length=512)
     outputs = model(**inputs)
     logits = outputs.logits
     predictions = torch.argmax(logits, dim=1).tolist()
-    return logits, [pred + 1 for pred in predictions]  # Adjust for ESI levels starting at 1
-
+    print(f"Logits: {logits}, Predictions: {predictions}")  # Debug log
+    return logits, [pred + 1 for pred in predictions]
+    
 # Post-processing function
 def apply_post_processing(input_text, predicted_esi_level, logits):
     # Define expanded rules for adjusting predictions
