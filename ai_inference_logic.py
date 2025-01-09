@@ -19,11 +19,12 @@ try:
     state_dict = load_file(MODEL_FILE)
 
     # Load the model with the state dictionary
-    model = AutoModelForSequenceClassification.from_pretrained(
-        "./",
-        state_dict=state_dict,
-        trust_remote_code=True
-    )
+   model = AutoModelForSequenceClassification.from_pretrained(
+    "./",
+    state_dict=load_file(MODEL_FILE, device="cpu"),  # Safely load on CPU
+    trust_remote_code=True
+)
+
     print("Tokenizer and model loaded successfully.")
 except Exception as e:
     raise RuntimeError(f"Failed to load the tokenizer or model: {e}")
