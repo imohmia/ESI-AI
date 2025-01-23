@@ -39,18 +39,20 @@ def predict_with_logic(input_texts: list[str]):
 
 # Post-processing function
 def apply_post_processing(input_text, predicted_esi_level, logits):
-    # Define expanded rules for adjusting predictions
+    # Define critical keywords based on severity
     critical_keywords = [
         "vomiting blood", "unresponsive", "not breathing", "loss of vision", "severe pain", "slurred speech",
-        "chest pain", "difficulty breathing", "stroke", "severe bleeding", "fainting", "heart attack",
-        "profuse bleeding", "head trauma", "trauma", "severe head injury", "unconscious", "seizure lasting longer than 5 minutes",
-        "heavy bleeding", "bleeding heavily", "blood loss", "hemorrhage", "bleeding uncontrollably", "bleeding profusely", "bleeding a lot", "severe blood loss"
+        "difficulty breathing", "stroke", "severe bleeding", "fainting", "heart attack", "head trauma",
+        "severe head injury", "unconscious", "seizure lasting longer than 5 minutes", "heavy bleeding",
+        "bleeding uncontrollably", "hemorrhage"
     ]
     pregnancy_keywords_critical = [
         "reduced fetal movement", "no fetal movement", "severe abdominal pain during pregnancy", 
-        "fetal movement stopped", "baby not moving", "severe bleeding during pregnancy", 
-        "preterm labor symptoms", "third trimester pain", "pregnant and in pain", 
-        "contractions with severe pain"
+        "fetal movement stopped", "severe bleeding during pregnancy", "preterm labor symptoms"
+    ]
+    chest_pain_keywords = [
+        "chest pain and difficulty breathing", "chest pain with sweating", "chest pain radiating to left arm",
+        "chest pain with dizziness", "severe chest pain", "chest pain after exercise"
     ]
     moderate_keywords = [
         "persistent cough", "high fever", "rash", "dehydration", "infection symptoms",
@@ -67,32 +69,43 @@ def apply_post_processing(input_text, predicted_esi_level, logits):
     # Get confidence scores
     confidence = torch.softmax(logits, dim=0).max().item()
 
-    # 1. Immediate Critical Cases
+    # Critical cases: Immediate escalation to Level 1
     if any(keyword in input_text.lower() for keyword in critical_keywords):
         return 1  # Escalate to Level 1
 
-    # 2. Pregnancy-Specific Critical Cases
+    # Pregnancy-related critical cases
     if any(keyword in input_text.lower() for keyword in pregnancy_keywords_critical):
         return 1  # Escalate to Level 1
 
-    # 3. High-Risk but Non-Immediate Cases
+    # High-risk chest pain cases (specific conditions)
+    if any(keyword in input_text.lower() for keyword in chest_pain_keywords):
+        return 1  # Escalate to Level 1 for specific chest pain contexts
+
+    # General chest pain cases: Assess accompanying factors
+    if "chest pain" in input_text.lower():
+        if "difficulty breathing" in input_text.lower() or "severe" in input_text.lower():
+            return 1  # Escalate if combined with critical symptoms
+        else:
+            return max(2, predicted_esi_level)  # Moderate risk without additional critical signs
+
+    # High-risk cases: Moderate (Level 2)
     if any(keyword in input_text.lower() for keyword in moderate_keywords):
         return max(2, predicted_esi_level)  # Ensure at least Level 2
 
-    # 4. Borderline or Low-Risk Cases
+    # Borderline or low-risk cases
     if any(keyword in input_text.lower() for keyword in borderline_keywords):
         return min(4, predicted_esi_level)  # Ensure at most Level 4
 
     if any(keyword in input_text.lower() for keyword in low_risk_keywords):
         return 5  # Escalate downward to Level 5 for non-urgent cases
 
-    # 5. Low Confidence Handling
+    # Low confidence handling: Escalate if uncertain
     if confidence < 0.7:  # Confidence threshold for escalation
         return max(2, predicted_esi_level)
 
-    # 6. Default: No rule applies
+    # Default: Return the predicted level if no rule applies
     return predicted_esi_level
-
+    
 # Test cases
 def evaluate_cases():
     large_test_cases = [
